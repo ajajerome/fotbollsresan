@@ -8,16 +8,31 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+
+      - name: Select Xcode 16 if available
+        run: |
+          if [ -d /Applications/Xcode_16.0.app ]; then
+            sudo xcode-select -s /Applications/Xcode_16.0.app
+            xcodebuild -version
+          else
+            echo "Xcode_16.0.app not found, using default"
+            xcodebuild -version
+          fi
+
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with: { ruby-version: '3.2' }
+
       - name: Install XcodeGen
         run: brew install xcodegen
+
       - name: Generate Xcode project
         working-directory: ios-app
         run: xcodegen generate
+
       - name: Install Fastlane
         run: sudo gem install fastlane --no-document
+
       - name: Build IPA with gym
         working-directory: ios-app
         run: |
@@ -27,6 +42,7 @@ jobs:
             --configuration Release \
             --export_method app-store \
             --skip_profile_detection true
+
       - name: Submit to TestFlight (if secrets present)
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
