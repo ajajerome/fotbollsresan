@@ -16,15 +16,17 @@ jobs:
       - name: Generate Xcode project
         working-directory: ios-app
         run: xcodegen generate
-      - name: Build app
-        working-directory: ios-app
-        run: |
-          set -e
-          xcodebuild -project Fotbollstranaren.xcodeproj \
-            -scheme Fotbollstranaren -sdk iphoneos -configuration Release \
-            -allowProvisioningUpdates build | xcpretty || true
       - name: Install Fastlane
         run: sudo gem install fastlane --no-document
+      - name: Build IPA with gym
+        working-directory: ios-app
+        run: |
+          fastlane gym \
+            --project Fotbollstranaren.xcodeproj \
+            --scheme Fotbollstranaren \
+            --configuration Release \
+            --export_method app-store \
+            --skip_profile_detection true
       - name: Submit to TestFlight (if secrets present)
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
@@ -32,11 +34,15 @@ jobs:
           ASC_KEY_B64: ${{ secrets.ASC_KEY_B64 }}
         working-directory: ios-app
         run: |
-          set -e
           if [ -z "${ASC_KEY_ID}" ] || [ -z "${ASC_ISSUER_ID}" ] || [ -z "${ASC_KEY_B64}" ]; then
             echo "ASC secrets missing, skipping submit."
             exit 0
           fi
           mkdir -p fastlane/tmp
           echo "${ASC_KEY_B64}" | base64 --decode > fastlane/tmp/AuthKey.p8
-          fastlane run upload_to_testflight apple_id:6751473029 skip_waiting_for_build_processing:true
+          IPA_PATH=$(ls -t *.ipa | head -n 1)
+          if [ -z "$IPA_PATH" ]; then
+            echo "No IPA built, aborting upload"
+            exit 1
+          fi
+          fastlane run upload_to_testflight ipa:"$IPA_PATH" apple_id:6751473029 skip_waiting_for_build_processing:true
