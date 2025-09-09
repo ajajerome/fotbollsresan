@@ -1,0 +1,38 @@
+require 'base64'
+default_platform(:ios)
+platform :ios do
+  lane :ci do
+    Dir.mkdir("fastlane/tmp") unless Dir.exist?("fastlane/tmp")
+    if ENV["ASC_KEY_B64"]
+      File.write("fastlane/tmp/AuthKey.p8", Base64.decode64(ENV["ASC_KEY_B64"]))
+    end
+    app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      keyfile: "fastlane/tmp/AuthKey.p8"
+    )
+    match(
+      type: "appstore",
+      readonly: false,
+      storage_mode: "git",
+      git_url: ENV["MATCH_GIT_URL"],
+      git_branch: "main",
+      app_identifier: ["com.ajagames.learnfotball"],
+      keychain_name: "login.keychain",
+      keychain_password: ENV["MATCH_PASSWORD"]
+    )
+    gym(
+      project: "Fotbollstranaren.xcodeproj",
+      scheme: "Fotbollstranaren",
+      configuration: "Release",
+      export_method: "app-store",
+      skip_profile_detection: true
+    )
+    ipa_path = Dir["*.ipa"].max_by { |f| File.mtime(f) }
+    upload_to_testflight(
+      ipa: ipa_path,
+      apple_id: "6751473029",
+      skip_waiting_for_build_processing: true
+    )
+  end
+end

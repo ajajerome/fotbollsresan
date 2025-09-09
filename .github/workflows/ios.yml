@@ -8,11 +8,18 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+<<<<<<< HEAD
 
       - name: Select Xcode 16
         run: |
           set -e
           CANDIDATES="/Applications/Xcode_16.app /Applications/Xcode_16.0.app /Applications/Xcode_16.0.0.app /Applications/Xcode.app"
+=======
+      - name: Select Xcode 16
+        run: |
+          set -e
+          CANDIDATES="/Applications/Xcode_16.app /Applications/Xcode_16.0.app /Applications/Xcode.app"
+>>>>>>> 8183266 (CI: use fastlane match + gym + TestFlight on Xcode 16)
           FOUND=""
           for X in $CANDIDATES; do
             if [ -d "$X" ]; then FOUND="$X"; break; fi
@@ -22,6 +29,7 @@ jobs:
           fi
           sudo xcode-select -s "$FOUND"
           xcodebuild -version
+<<<<<<< HEAD
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
@@ -48,10 +56,25 @@ jobs:
             --skip_profile_detection true
 
       - name: Submit to TestFlight (if secrets present)
+=======
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with: { ruby-version: '3.2' }
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        working-directory: ios-app
+        run: xcodegen generate
+      - name: Install Fastlane
+        run: sudo gem install fastlane --no-document
+      - name: Build & Upload (fastlane ios ci)
+        working-directory: ios-app
+>>>>>>> 8183266 (CI: use fastlane match + gym + TestFlight on Xcode 16)
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_B64: ${{ secrets.ASC_KEY_B64 }}
+<<<<<<< HEAD
         working-directory: ios-app
         run: |
           if [ -z "${ASC_KEY_ID}" ] || [ -z "${ASC_ISSUER_ID}" ] || [ -z "${ASC_KEY_B64}" ]; then
@@ -62,3 +85,8 @@ jobs:
           IPA_PATH=$(ls -t *.ipa | head -n 1)
           if [ -z "$IPA_PATH" ]; then echo "No IPA built, aborting upload"; exit 1; fi
           fastlane run upload_to_testflight ipa:"$IPA_PATH" apple_id:6751473029 skip_waiting_for_build_processing:true
+=======
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+        run: fastlane ios ci
+>>>>>>> 8183266 (CI: use fastlane match + gym + TestFlight on Xcode 16)
